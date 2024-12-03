@@ -20,7 +20,7 @@ RETURNING room_id, hotel_id, room_number, type, price_per_night, is_available
 
 type CreateRoomParams struct {
 	HotelID       uuid.NullUUID `json:"hotel_id"`
-	RoomNumber    string        `json:"room_number"`
+	RoomNumber    int32         `json:"room_number"`
 	Type          string        `json:"type"`
 	PricePerNight string        `json:"price_per_night"`
 	IsAvailable   sql.NullBool  `json:"is_available"`

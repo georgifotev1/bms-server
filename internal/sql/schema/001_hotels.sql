@@ -8,10 +8,11 @@ CREATE TABLE hotels (
 CREATE TABLE rooms (
     room_id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
     hotel_id UUID REFERENCES Hotels (hotel_id) ON DELETE CASCADE,
-    room_number VARCHAR(20) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type in ('single', 'double', 'suite')),
+    room_number INTEGER NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('single', 'double', 'suite')),
     price_per_night DECIMAL(10, 2) NOT NULL,
-    is_available BOOLEAN DEFAULT TRUE
+    is_available BOOLEAN DEFAULT TRUE,
+    CONSTRAINT unique_room_number_per_hotel UNIQUE (hotel_id, room_number)
 );
 
 CREATE TABLE guests (

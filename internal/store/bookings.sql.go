@@ -102,7 +102,7 @@ type ListBookingsByHotelRow struct {
 	CheckOutDate time.Time     `json:"check_out_date"`
 	TotalPrice   string        `json:"total_price"`
 	Status       string        `json:"status"`
-	RoomNumber   string        `json:"room_number"`
+	RoomNumber   int32         `json:"room_number"`
 	RoomType     string        `json:"room_type"`
 	HotelID      uuid.UUID     `json:"hotel_id"`
 	HotelName    string        `json:"hotel_name"`

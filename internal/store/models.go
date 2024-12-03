@@ -20,6 +20,12 @@ type Booking struct {
 	Status       string        `json:"status"`
 }
 
+type BookingGuest struct {
+	BookingGuestID uuid.UUID     `json:"booking_guest_id"`
+	BookingID      uuid.NullUUID `json:"booking_id"`
+	GuestID        uuid.NullUUID `json:"guest_id"`
+}
+
 type Guest struct {
 	GuestID   uuid.UUID      `json:"guest_id"`
 	FirstName string         `json:"first_name"`
@@ -37,7 +43,7 @@ type Hotel struct {
 type Room struct {
 	RoomID        uuid.UUID     `json:"room_id"`
 	HotelID       uuid.NullUUID `json:"hotel_id"`
-	RoomNumber    string        `json:"room_number"`
+	RoomNumber    int32         `json:"room_number"`
 	Type          string        `json:"type"`
 	PricePerNight string        `json:"price_per_night"`
 	IsAvailable   sql.NullBool  `json:"is_available"`

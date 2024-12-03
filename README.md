@@ -1,1 +1,1 @@
-# Go REST API starter template
+# Booking management system
