@@ -17,11 +17,16 @@ const createBookingGuest = `-- name: CreateBookingGuest :one
 INSERT INTO
     booking_guests (booking_id, guest_id)
 VALUES
-    ('<booking_uuid>', '<guest_uuid>') RETURNING booking_guest_id, booking_id, guest_id
+    ($1, $2) RETURNING booking_guest_id, booking_id, guest_id
 `
 
-func (q *Queries) CreateBookingGuest(ctx context.Context) (BookingGuest, error) {
-	row := q.db.QueryRowContext(ctx, createBookingGuest)
+type CreateBookingGuestParams struct {
+	BookingID uuid.NullUUID `json:"booking_id"`
+	GuestID   uuid.NullUUID `json:"guest_id"`
+}
+
+func (q *Queries) CreateBookingGuest(ctx context.Context, arg CreateBookingGuestParams) (BookingGuest, error) {
+	row := q.db.QueryRowContext(ctx, createBookingGuest, arg.BookingID, arg.GuestID)
 	var i BookingGuest
 	err := row.Scan(&i.BookingGuestID, &i.BookingID, &i.GuestID)
 	return i, err

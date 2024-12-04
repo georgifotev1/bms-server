@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/georgifotev/bms/internal/db"
+	"github.com/georgifotev/bms/internal/store"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -48,8 +49,11 @@ func main() {
 	defer db.Close()
 	logger.Info("database connection pool established")
 
+	store := store.New(db)
+
 	app := &application{
 		config: cfg,
+		store:  *store,
 		logger: logger,
 	}
 

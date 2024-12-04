@@ -2,7 +2,7 @@
 INSERT INTO
     booking_guests (booking_id, guest_id)
 VALUES
-    ('<booking_uuid>', '<guest_uuid>') RETURNING *;
+    ($1, $2) RETURNING *;
 
 -- name: ListGuestsByBooking :many
 SELECT

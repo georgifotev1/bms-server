@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/georgifotev/bms/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -17,6 +18,7 @@ import (
 
 type application struct {
 	config config
+	store  store.Queries
 	logger *zap.SugaredLogger
 }
 
@@ -56,8 +58,8 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Hello World"))
+		r.Route("/hotels", func(r chi.Router) {
+			r.Get("/", app.listHotelsHandler)
 		})
 	})
 
