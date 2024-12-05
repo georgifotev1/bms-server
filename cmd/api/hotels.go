@@ -18,7 +18,7 @@ func (app *application) listHotelsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := app.jsonResponse(w, http.StatusOK, hotels); err != nil {
+	if err := writeJSON(w, http.StatusOK, hotels); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
