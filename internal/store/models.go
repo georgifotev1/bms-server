@@ -40,6 +40,14 @@ type Hotel struct {
 	Address string    `json:"address"`
 }
 
+type Notification struct {
+	NotificationID uuid.UUID     `json:"notification_id"`
+	Message        string        `json:"message"`
+	Roles          []string      `json:"roles"`
+	UserID         uuid.NullUUID `json:"user_id"`
+	IsActive       bool          `json:"is_active"`
+}
+
 type Room struct {
 	RoomID        uuid.UUID     `json:"room_id"`
 	HotelID       uuid.NullUUID `json:"hotel_id"`
@@ -47,4 +55,22 @@ type Room struct {
 	Type          string        `json:"type"`
 	PricePerNight string        `json:"price_per_night"`
 	IsAvailable   sql.NullBool  `json:"is_available"`
+}
+
+type Session struct {
+	SessionID uuid.UUID `json:"session_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	IsActive  bool      `json:"is_active"`
+}
+
+type User struct {
+	UserID     uuid.UUID      `json:"user_id"`
+	FirstName  string         `json:"first_name"`
+	LastName   string         `json:"last_name"`
+	Email      sql.NullString `json:"email"`
+	Password   []byte         `json:"password"`
+	Role       string         `json:"role"`
+	IsVerified bool           `json:"is_verified"`
+	CreatedAt  time.Time      `json:"created_at"`
 }

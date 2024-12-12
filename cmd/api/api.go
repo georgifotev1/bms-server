@@ -61,6 +61,9 @@ func (app *application) mount() http.Handler {
 		r.Route("/hotels", func(r chi.Router) {
 			r.Get("/", app.listHotelsHandler)
 		})
+		r.Route("/authentication", func(r chi.Router) {
+			r.Post("/register", app.createUserHandler)
+		})
 	})
 
 	return r
