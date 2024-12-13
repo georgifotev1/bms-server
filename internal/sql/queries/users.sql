@@ -5,3 +5,8 @@ RETURNING user_id;
 
 -- name: GetUserById :one
 SELECT * FROM users WHERE user_id = $1;
+
+-- name: ConfirmUserRole :exec
+UPDATE users
+SET role = $2
+WHERE user_id = $1;

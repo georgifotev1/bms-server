@@ -13,23 +13,22 @@ import (
 )
 
 const createNotification = `-- name: CreateNotification :exec
-INSERT INTO notifications (message, roles, user_id)
-VALUES ($1, $2, $3)
+INSERT INTO notifications (message, roles)
+VALUES ($1, $2)
 `
 
 type CreateNotificationParams struct {
-	Message string        `json:"message"`
-	Roles   []string      `json:"roles"`
-	UserID  uuid.NullUUID `json:"user_id"`
+	Message string   `json:"message"`
+	Roles   []string `json:"roles"`
 }
 
 func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) error {
-	_, err := q.db.ExecContext(ctx, createNotification, arg.Message, pq.Array(arg.Roles), arg.UserID)
+	_, err := q.db.ExecContext(ctx, createNotification, arg.Message, pq.Array(arg.Roles))
 	return err
 }
 
 const getNotifications = `-- name: GetNotifications :many
-SELECT notification_id, message, roles, user_id, is_active
+SELECT notification_id, message, roles, is_active
 FROM notifications
 WHERE $1 = ANY(roles)
 `
@@ -47,7 +46,6 @@ func (q *Queries) GetNotifications(ctx context.Context, roles []string) ([]Notif
 			&i.NotificationID,
 			&i.Message,
 			pq.Array(&i.Roles),
-			&i.UserID,
 			&i.IsActive,
 		); err != nil {
 			return nil, err
@@ -67,7 +65,7 @@ const updateNotificationStatus = `-- name: UpdateNotificationStatus :exec
 UPDATE notifications
 SET is_active = $2
 WHERE notification_id = $1
-RETURNING notification_id, message, roles, user_id, is_active
+RETURNING notification_id, message, roles, is_active
 `
 
 type UpdateNotificationStatusParams struct {

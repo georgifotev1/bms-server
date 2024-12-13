@@ -1,12 +1,9 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/georgifotev/bms/internal/store"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,14 +11,15 @@ const (
 	ManagerRole = "manager"
 	AdminRole   = "admin"
 	StaffRole   = "staff"
+	PendingRole = "pending"
 )
 
 type CreateUserPayload struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	Role      string `json:"role"`
+	FirstName string `json:"first_name" validate:"required"`
+	LastName  string `json:"last_name" validate:"required"`
+	Email     string `json:"email" validate:"required"`
+	Password  string `json:"password" validate:"required"`
+	// Role      string `json:"role" validate:"manager|admin|staff|pending"`
 }
 
 func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,17 +40,12 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if !IsValidRole(payload.Role) {
-		app.badRequestResponse(w, r, errors.New("invalid user role"))
-		return
-	}
-
 	userId, err := app.store.CreateUser(r.Context(), store.CreateUserParams{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
-		Email:     sql.NullString{String: payload.Email, Valid: payload.Email != ""},
+		Email:     payload.Email,
 		Password:  hashedPass,
-		Role:      payload.Role,
+		Role:      PendingRole,
 	})
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -62,7 +55,6 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	err = app.store.CreateNotification(r.Context(), store.CreateNotificationParams{
 		Message: "New registration request",
 		Roles:   []string{ManagerRole, AdminRole},
-		UserID:  uuid.NullUUID{UUID: userId, Valid: true},
 	})
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -78,7 +70,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 
 func IsValidRole(role string) bool {
 	switch role {
-	case ManagerRole, AdminRole, StaffRole:
+	case ManagerRole, AdminRole, StaffRole, PendingRole:
 		return true
 	default:
 		return false

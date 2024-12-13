@@ -41,11 +41,10 @@ type Hotel struct {
 }
 
 type Notification struct {
-	NotificationID uuid.UUID     `json:"notification_id"`
-	Message        string        `json:"message"`
-	Roles          []string      `json:"roles"`
-	UserID         uuid.NullUUID `json:"user_id"`
-	IsActive       bool          `json:"is_active"`
+	NotificationID uuid.UUID `json:"notification_id"`
+	Message        string    `json:"message"`
+	Roles          []string  `json:"roles"`
+	IsActive       bool      `json:"is_active"`
 }
 
 type Room struct {
@@ -65,12 +64,11 @@ type Session struct {
 }
 
 type User struct {
-	UserID     uuid.UUID      `json:"user_id"`
-	FirstName  string         `json:"first_name"`
-	LastName   string         `json:"last_name"`
-	Email      sql.NullString `json:"email"`
-	Password   []byte         `json:"password"`
-	Role       string         `json:"role"`
-	IsVerified bool           `json:"is_verified"`
-	CreatedAt  time.Time      `json:"created_at"`
+	UserID    uuid.UUID `json:"user_id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Password  []byte    `json:"password"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }

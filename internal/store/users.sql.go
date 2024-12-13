@@ -7,10 +7,25 @@ package store
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
+
+const confirmUserRole = `-- name: ConfirmUserRole :exec
+UPDATE users
+SET role = $2
+WHERE user_id = $1
+`
+
+type ConfirmUserRoleParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Role   string    `json:"role"`
+}
+
+func (q *Queries) ConfirmUserRole(ctx context.Context, arg ConfirmUserRoleParams) error {
+	_, err := q.db.ExecContext(ctx, confirmUserRole, arg.UserID, arg.Role)
+	return err
+}
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (first_name, last_name, email, password, role)
@@ -19,11 +34,11 @@ RETURNING user_id
 `
 
 type CreateUserParams struct {
-	FirstName string         `json:"first_name"`
-	LastName  string         `json:"last_name"`
-	Email     sql.NullString `json:"email"`
-	Password  []byte         `json:"password"`
-	Role      string         `json:"role"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Password  []byte `json:"password"`
+	Role      string `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
@@ -40,7 +55,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT user_id, first_name, last_name, email, password, role, is_verified, created_at FROM users WHERE user_id = $1
+SELECT user_id, first_name, last_name, email, password, role, created_at FROM users WHERE user_id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, error) {
@@ -53,7 +68,6 @@ func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, erro
 		&i.Email,
 		&i.Password,
 		&i.Role,
-		&i.IsVerified,
 		&i.CreatedAt,
 	)
 	return i, err

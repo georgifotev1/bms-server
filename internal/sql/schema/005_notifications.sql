@@ -1,9 +1,8 @@
 -- +goose Up
 CREATE TABLE notifications (
-  notification_id UUID PRIMARY KEY NOT NULL,
+  notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
   message TEXT NOT NULL,
   roles TEXT[],
-  user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
   is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 

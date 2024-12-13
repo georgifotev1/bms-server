@@ -1,6 +1,6 @@
 -- name: CreateNotification :exec
-INSERT INTO notifications (message, roles, user_id)
-VALUES ($1, $2, $3);
+INSERT INTO notifications (message, roles)
+VALUES ($1, $2);
 
 -- name: GetNotifications :many
 SELECT *
