@@ -72,3 +72,9 @@ type User struct {
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type UserNotification struct {
+	UserID         uuid.UUID    `json:"user_id"`
+	NotificationID uuid.UUID    `json:"notification_id"`
+	ReadAt         sql.NullTime `json:"read_at"`
+}

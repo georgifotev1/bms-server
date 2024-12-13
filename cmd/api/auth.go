@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/georgifotev/bms/internal/store"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,7 +22,6 @@ type CreateUserPayload struct {
 	LastName  string `json:"last_name" validate:"required"`
 	Email     string `json:"email" validate:"required"`
 	Password  string `json:"password" validate:"required"`
-	// Role      string `json:"role" validate:"manager|admin|staff|pending"`
 }
 
 func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,15 +66,65 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	err = writeJSON(w, http.StatusCreated, userId)
 	if err != nil {
 		app.internalServerError(w, r, err)
-		return
 	}
 }
 
-func IsValidRole(role string) bool {
-	switch role {
-	case ManagerRole, AdminRole, StaffRole, PendingRole:
-		return true
-	default:
-		return false
+type CreateSessionPayload struct {
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type UserWithToken struct {
+	*store.User
+	Token string `json:"token"`
+}
+
+func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Request) {
+	var payload CreateSessionPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	user, err := app.store.GetUserByEmail(r.Context(), payload.Email)
+	if err != nil {
+		app.logger.Error(err) // todo
+		return
+	}
+
+	if user.Role == PendingRole {
+		app.forbiddenResponse(w, r, errors.New("pending"))
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword(user.Password, []byte(payload.Password))
+	if err != nil {
+		app.unauthorizedErrorResponse(w, r, err)
+		return
+	}
+
+	token, err := app.store.CreateSession(r.Context(), store.CreateSessionParams{
+		SessionID: uuid.New(),
+		UserID:    user.UserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	})
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	userWithToken := UserWithToken{
+		&user,
+		token.String(),
+	}
+
+	err = writeJSON(w, http.StatusCreated, userWithToken)
+	if err != nil {
+		app.internalServerError(w, r, err)
 	}
 }

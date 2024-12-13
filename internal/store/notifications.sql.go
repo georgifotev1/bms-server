@@ -27,27 +27,34 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 	return err
 }
 
-const getNotifications = `-- name: GetNotifications :many
-SELECT notification_id, message, roles, is_active
-FROM notifications
-WHERE $1 = ANY(roles)
+const getNotificationsByUserId = `-- name: GetNotificationsByUserId :many
+SELECT
+    n.notification_id,
+    n.message
+FROM notifications n
+LEFT JOIN user_notifications un ON
+    n.notification_id = un.notification_id AND
+    un.user_id = $1
+WHERE
+    n.is_active = true AND
+    (un.read_at IS NULL)
 `
 
-func (q *Queries) GetNotifications(ctx context.Context, roles []string) ([]Notification, error) {
-	rows, err := q.db.QueryContext(ctx, getNotifications, pq.Array(roles))
+type GetNotificationsByUserIdRow struct {
+	NotificationID uuid.UUID `json:"notification_id"`
+	Message        string    `json:"message"`
+}
+
+func (q *Queries) GetNotificationsByUserId(ctx context.Context, userID uuid.UUID) ([]GetNotificationsByUserIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getNotificationsByUserId, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Notification
+	var items []GetNotificationsByUserIdRow
 	for rows.Next() {
-		var i Notification
-		if err := rows.Scan(
-			&i.NotificationID,
-			&i.Message,
-			pq.Array(&i.Roles),
-			&i.IsActive,
-		); err != nil {
+		var i GetNotificationsByUserIdRow
+		if err := rows.Scan(&i.NotificationID, &i.Message); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -61,19 +68,19 @@ func (q *Queries) GetNotifications(ctx context.Context, roles []string) ([]Notif
 	return items, nil
 }
 
-const updateNotificationStatus = `-- name: UpdateNotificationStatus :exec
-UPDATE notifications
-SET is_active = $2
-WHERE notification_id = $1
-RETURNING notification_id, message, roles, is_active
+const markAsRead = `-- name: MarkAsRead :exec
+INSERT INTO user_notifications (user_id, notification_id, read_at)
+VALUES ($1, $2, NOW())
+ON CONFLICT (user_id, notification_id)
+DO UPDATE SET read_at = NOW()
 `
 
-type UpdateNotificationStatusParams struct {
+type MarkAsReadParams struct {
+	UserID         uuid.UUID `json:"user_id"`
 	NotificationID uuid.UUID `json:"notification_id"`
-	IsActive       bool      `json:"is_active"`
 }
 
-func (q *Queries) UpdateNotificationStatus(ctx context.Context, arg UpdateNotificationStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateNotificationStatus, arg.NotificationID, arg.IsActive)
+func (q *Queries) MarkAsRead(ctx context.Context, arg MarkAsReadParams) error {
+	_, err := q.db.ExecContext(ctx, markAsRead, arg.UserID, arg.NotificationID)
 	return err
 }

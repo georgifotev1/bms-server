@@ -2,13 +2,20 @@
 INSERT INTO notifications (message, roles)
 VALUES ($1, $2);
 
--- name: GetNotifications :many
-SELECT *
-FROM notifications
-WHERE $1 = ANY(roles);
+-- name: GetNotificationsByUserId :many
+SELECT
+    n.notification_id,
+    n.message
+FROM notifications n
+LEFT JOIN user_notifications un ON
+    n.notification_id = un.notification_id AND
+    un.user_id = $1
+WHERE
+    n.is_active = true AND
+    (un.read_at IS NULL);
 
--- name: UpdateNotificationStatus :exec
-UPDATE notifications
-SET is_active = $2
-WHERE notification_id = $1
-RETURNING *;
+-- name: MarkAsRead :exec
+INSERT INTO user_notifications (user_id, notification_id, read_at)
+VALUES ($1, $2, NOW())
+ON CONFLICT (user_id, notification_id)
+DO UPDATE SET read_at = NOW();
