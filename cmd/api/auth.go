@@ -17,6 +17,16 @@ const (
 	PendingRole = "pending"
 )
 
+type UserWithToken struct {
+	UserID    uuid.UUID `json:"user_id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	Token     string    `json:"token"`
+}
+
 type CreateUserPayload struct {
 	FirstName string `json:"first_name" validate:"required"`
 	LastName  string `json:"last_name" validate:"required"`
@@ -42,7 +52,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userId, err := app.store.CreateUser(r.Context(), store.CreateUserParams{
+	user, err := app.store.CreateUser(r.Context(), store.CreateUserParams{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
 		Email:     payload.Email,
@@ -63,7 +73,17 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = writeJSON(w, http.StatusCreated, userId)
+	userWithoutToken := UserWithToken{
+		UserID:    user.UserID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+		Token:     "",
+	}
+
+	err = writeJSON(w, http.StatusCreated, userWithoutToken)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -72,11 +92,6 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 type CreateSessionPayload struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
-}
-
-type UserWithToken struct {
-	*store.User
-	Token string `json:"token"`
 }
 
 func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,8 +134,13 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	userWithToken := UserWithToken{
-		&user,
-		token.String(),
+		UserID:    user.UserID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+		Token:     token.String(),
 	}
 
 	err = writeJSON(w, http.StatusCreated, userWithToken)

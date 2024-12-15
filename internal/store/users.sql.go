@@ -30,7 +30,7 @@ func (q *Queries) ConfirmUserRole(ctx context.Context, arg ConfirmUserRoleParams
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (first_name, last_name, email, password, role)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING user_id
+RETURNING user_id, first_name, last_name, email, password, role, created_at
 `
 
 type CreateUserParams struct {
@@ -41,7 +41,7 @@ type CreateUserParams struct {
 	Role      string `json:"role"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.FirstName,
 		arg.LastName,
@@ -49,9 +49,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 		arg.Password,
 		arg.Role,
 	)
-	var user_id uuid.UUID
-	err := row.Scan(&user_id)
-	return user_id, err
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Role,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
