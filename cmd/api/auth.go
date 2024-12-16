@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"time"
@@ -11,21 +12,12 @@ import (
 )
 
 const (
-	ManagerRole = "manager"
-	AdminRole   = "admin"
-	StaffRole   = "staff"
-	PendingRole = "pending"
+	ManagerRole   = "manager"
+	AdminRole     = "admin"
+	StaffRole     = "staff"
+	PendingRole   = "pending"
+	SessionCookie = "session_cookie"
 )
-
-type UserWithToken struct {
-	UserID    uuid.UUID `json:"user_id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
-	Token     string    `json:"token"`
-}
 
 type CreateUserPayload struct {
 	FirstName string `json:"first_name" validate:"required"`
@@ -52,7 +44,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := app.store.CreateUser(r.Context(), store.CreateUserParams{
+	err = app.store.CreateUser(r.Context(), store.CreateUserParams{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
 		Email:     payload.Email,
@@ -73,17 +65,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userWithoutToken := UserWithToken{
-		UserID:    user.UserID,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt,
-		Token:     "",
-	}
-
-	err = writeJSON(w, http.StatusCreated, userWithoutToken)
+	err = writeJSON(w, http.StatusCreated, []string{})
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}
@@ -108,7 +90,11 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 
 	user, err := app.store.GetUserByEmail(r.Context(), payload.Email)
 	if err != nil {
-		app.logger.Error(err) // todo
+		if errors.Is(err, sql.ErrNoRows) {
+			app.notFoundResponse(w, r, err)
+			return
+		}
+		app.internalServerError(w, r, err)
 		return
 	}
 
@@ -133,17 +119,86 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	userWithToken := UserWithToken{
-		UserID:    user.UserID,
+	cookie := &http.Cookie{
+		Name:     SessionCookie,
+		Value:    token.String(),
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(w, cookie)
+
+	err = writeJSON(w, http.StatusCreated, []string{})
+	if err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+type UserResponse struct {
+	UserID    string    `json:"user_id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(SessionCookie)
+	if err != nil {
+		if err == http.ErrNoCookie {
+			app.unauthorizedErrorResponse(w, r, err)
+			return
+		}
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	sessionId, err := uuid.Parse(cookie.Value)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	session, err := app.store.GetSessionById(r.Context(), sessionId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			app.notFoundResponse(w, r, err)
+			return
+		}
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if time.Now().After(session.ExpiresAt) || !session.IsActive {
+		err := app.store.ClearExpiredSessions(r.Context())
+		if err != nil {
+			app.internalServerError(w, r, err)
+		}
+
+		app.unauthorizedErrorResponse(w, r, err)
+		return
+	}
+
+	user, err := app.store.GetUserById(r.Context(), session.UserID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	userResponse := UserResponse{
+		UserID:    user.UserID.String(),
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
-		Token:     token.String(),
 	}
 
-	err = writeJSON(w, http.StatusCreated, userWithToken)
+	err = writeJSON(w, http.StatusOK, userResponse)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}

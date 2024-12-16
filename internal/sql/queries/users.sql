@@ -1,7 +1,6 @@
--- name: CreateUser :one
+-- name: CreateUser :exec
 INSERT INTO users (first_name, last_name, email, password, role)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING *;
+VALUES ($1, $2, $3, $4, $5);
 
 -- name: GetUserById :one
 SELECT * FROM users WHERE user_id = $1;

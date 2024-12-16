@@ -48,7 +48,7 @@ func (app *application) mount() http.Handler {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
@@ -64,6 +64,7 @@ func (app *application) mount() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", app.createUserHandler)
 			r.Post("/login", app.createSessionHandler)
+			r.Get("/me", app.getUserHandler)
 		})
 	})
 

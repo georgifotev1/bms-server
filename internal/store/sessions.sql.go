@@ -12,37 +12,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const clearExpiredSessions = `-- name: ClearExpiredSessions :many
-DELETE FROM sessions WHERE expires_at < NOW()
-RETURNING session_id, user_id, expires_at, is_active
+const clearExpiredSessions = `-- name: ClearExpiredSessions :exec
+DELETE FROM sessions WHERE expires_at <= NOW() OR is_active = FALSE
 `
 
-func (q *Queries) ClearExpiredSessions(ctx context.Context) ([]Session, error) {
-	rows, err := q.db.QueryContext(ctx, clearExpiredSessions)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Session
-	for rows.Next() {
-		var i Session
-		if err := rows.Scan(
-			&i.SessionID,
-			&i.UserID,
-			&i.ExpiresAt,
-			&i.IsActive,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) ClearExpiredSessions(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, clearExpiredSessions)
+	return err
 }
 
 const createSession = `-- name: CreateSession :one
@@ -70,6 +46,22 @@ SELECT session_id, user_id, expires_at, is_active FROM sessions WHERE session_id
 
 func (q *Queries) GetSessionById(ctx context.Context, sessionID uuid.UUID) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSessionById, sessionID)
+	var i Session
+	err := row.Scan(
+		&i.SessionID,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.IsActive,
+	)
+	return i, err
+}
+
+const getSessionByUserId = `-- name: GetSessionByUserId :one
+SELECT session_id, user_id, expires_at, is_active FROM sessions WHERE user_id = $1
+`
+
+func (q *Queries) GetSessionByUserId(ctx context.Context, userID uuid.UUID) (Session, error) {
+	row := q.db.QueryRowContext(ctx, getSessionByUserId, userID)
 	var i Session
 	err := row.Scan(
 		&i.SessionID,
