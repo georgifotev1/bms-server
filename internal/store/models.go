@@ -60,7 +60,6 @@ type Session struct {
 	SessionID uuid.UUID `json:"session_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	ExpiresAt time.Time `json:"expires_at"`
-	IsActive  bool      `json:"is_active"`
 }
 
 type User struct {

@@ -13,7 +13,7 @@ import (
 )
 
 const clearExpiredSessions = `-- name: ClearExpiredSessions :exec
-DELETE FROM sessions WHERE expires_at <= NOW() OR is_active = FALSE
+DELETE FROM sessions WHERE expires_at < NOW()
 `
 
 func (q *Queries) ClearExpiredSessions(ctx context.Context) error {
@@ -41,33 +41,23 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (u
 }
 
 const getSessionById = `-- name: GetSessionById :one
-SELECT session_id, user_id, expires_at, is_active FROM sessions WHERE session_id = $1
+SELECT session_id, user_id, expires_at FROM sessions WHERE session_id = $1
 `
 
 func (q *Queries) GetSessionById(ctx context.Context, sessionID uuid.UUID) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSessionById, sessionID)
 	var i Session
-	err := row.Scan(
-		&i.SessionID,
-		&i.UserID,
-		&i.ExpiresAt,
-		&i.IsActive,
-	)
+	err := row.Scan(&i.SessionID, &i.UserID, &i.ExpiresAt)
 	return i, err
 }
 
 const getSessionByUserId = `-- name: GetSessionByUserId :one
-SELECT session_id, user_id, expires_at, is_active FROM sessions WHERE user_id = $1
+SELECT session_id, user_id, expires_at FROM sessions WHERE user_id = $1
 `
 
 func (q *Queries) GetSessionByUserId(ctx context.Context, userID uuid.UUID) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSessionByUserId, userID)
 	var i Session
-	err := row.Scan(
-		&i.SessionID,
-		&i.UserID,
-		&i.ExpiresAt,
-		&i.IsActive,
-	)
+	err := row.Scan(&i.SessionID, &i.UserID, &i.ExpiresAt)
 	return i, err
 }

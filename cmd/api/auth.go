@@ -98,11 +98,6 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if user.Role == PendingRole {
-		app.forbiddenResponse(w, r, errors.New("pending"))
-		return
-	}
-
 	err = bcrypt.CompareHashAndPassword(user.Password, []byte(payload.Password))
 	if err != nil {
 		app.unauthorizedErrorResponse(w, r, err)
@@ -112,7 +107,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 	token, err := app.store.CreateSession(r.Context(), store.CreateSessionParams{
 		SessionID: uuid.New(),
 		UserID:    user.UserID,
-		ExpiresAt: time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().UTC().Add(time.Minute),
 	})
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -123,7 +118,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		Name:     SessionCookie,
 		Value:    token.String(),
 		Path:     "/",
-		Expires:  time.Now().Add(24 * time.Hour),
+		Expires:  time.Now().UTC().Add(time.Minute),
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
@@ -150,6 +145,11 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(SessionCookie)
 	if err != nil {
 		if err == http.ErrNoCookie {
+			clearErr := app.store.ClearExpiredSessions(r.Context())
+			if clearErr != nil {
+				app.internalServerError(w, r, clearErr)
+			}
+
 			app.unauthorizedErrorResponse(w, r, err)
 			return
 		}
@@ -170,16 +170,6 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		app.internalServerError(w, r, err)
-		return
-	}
-
-	if time.Now().After(session.ExpiresAt) || !session.IsActive {
-		err := app.store.ClearExpiredSessions(r.Context())
-		if err != nil {
-			app.internalServerError(w, r, err)
-		}
-
-		app.unauthorizedErrorResponse(w, r, err)
 		return
 	}
 

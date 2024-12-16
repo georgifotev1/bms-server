@@ -7,7 +7,7 @@ RETURNING session_id;
 SELECT * FROM sessions WHERE session_id = $1;
 
 -- name: ClearExpiredSessions :exec
-DELETE FROM sessions WHERE expires_at <= NOW() OR is_active = FALSE;
+DELETE FROM sessions WHERE expires_at < NOW();
 
 -- name: GetSessionByUserId :one
 SELECT * FROM sessions WHERE user_id = $1;
