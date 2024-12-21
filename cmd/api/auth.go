@@ -100,7 +100,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 
 	err = bcrypt.CompareHashAndPassword(user.Password, []byte(payload.Password))
 	if err != nil {
-		app.unauthorizedErrorResponse(w, r, err)
+		app.forbiddenResponse(w, r, err)
 		return
 	}
 
