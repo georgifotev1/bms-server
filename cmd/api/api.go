@@ -62,6 +62,8 @@ func (app *application) mount() http.Handler {
 			r.Get("/", app.listHotelsHandler)
 		})
 		r.Route("/auth", func(r chi.Router) {
+			r.Use(app.sessionMiddleware)
+
 			r.Post("/register", app.createUserHandler)
 			r.Post("/login", app.createSessionHandler)
 			r.Get("/me", app.getUserHandler)

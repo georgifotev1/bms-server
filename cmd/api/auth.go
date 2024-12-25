@@ -1,8 +1,6 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"time"
 
@@ -52,7 +50,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		Role:      PendingRole,
 	})
 	if err != nil {
-		app.internalServerError(w, r, err)
+		app.parseDBError(w, r, err)
 		return
 	}
 
@@ -90,11 +88,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 
 	user, err := app.store.GetUserByEmail(r.Context(), payload.Email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			app.notFoundResponse(w, r, err)
-			return
-		}
-		app.internalServerError(w, r, err)
+		app.parseDBError(w, r, err)
 		return
 	}
 
@@ -110,7 +104,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		ExpiresAt: time.Now().UTC().Add(time.Minute),
 	})
 	if err != nil {
-		app.internalServerError(w, r, err)
+		app.parseDBError(w, r, err)
 		return
 	}
 
@@ -142,35 +136,11 @@ type UserResponse struct {
 }
 
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SessionCookie)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			clearErr := app.store.ClearExpiredSessions(r.Context())
-			if clearErr != nil {
-				app.internalServerError(w, r, clearErr)
-			}
+	ctxSession := r.Context().Value(SessionContexKey).(store.Session)
 
-			app.unauthorizedErrorResponse(w, r, err)
-			return
-		}
-		app.internalServerError(w, r, err)
-		return
-	}
-
-	sessionId, err := uuid.Parse(cookie.Value)
+	session, err := app.store.GetSessionById(r.Context(), ctxSession.SessionID)
 	if err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
-	session, err := app.store.GetSessionById(r.Context(), sessionId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			app.notFoundResponse(w, r, err)
-			return
-		}
-		app.internalServerError(w, r, err)
-		return
+		app.parseDBError(w, r, err)
 	}
 
 	user, err := app.store.GetUserById(r.Context(), session.UserID)
