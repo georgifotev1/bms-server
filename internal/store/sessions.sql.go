@@ -12,15 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const clearExpiredSessions = `-- name: ClearExpiredSessions :exec
-DELETE FROM sessions WHERE expires_at < NOW()
-`
-
-func (q *Queries) ClearExpiredSessions(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, clearExpiredSessions)
-	return err
-}
-
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (session_id, user_id, expires_at)
 VALUES ($1, $2, $3)
@@ -60,4 +51,23 @@ func (q *Queries) GetSessionByUserId(ctx context.Context, userID uuid.UUID) (Ses
 	var i Session
 	err := row.Scan(&i.SessionID, &i.UserID, &i.ExpiresAt)
 	return i, err
+}
+
+const updateSession = `-- name: UpdateSession :one
+UPDATE sessions
+SET expires_at = $2
+WHERE session_id = $1
+RETURNING session_id
+`
+
+type UpdateSessionParams struct {
+	SessionID uuid.UUID `json:"session_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, updateSession, arg.SessionID, arg.ExpiresAt)
+	var session_id uuid.UUID
+	err := row.Scan(&session_id)
+	return session_id, err
 }

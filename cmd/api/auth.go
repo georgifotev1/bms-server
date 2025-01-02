@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
@@ -98,15 +100,35 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	token, err := app.store.CreateSession(r.Context(), store.CreateSessionParams{
-		SessionID: uuid.New(),
-		UserID:    user.UserID,
+	var token uuid.UUID
+
+	session, err := app.store.GetSessionByUserId(r.Context(), user.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		sessionId, err := app.store.CreateSession(r.Context(), store.CreateSessionParams{
+			SessionID: uuid.New(),
+			UserID:    user.UserID,
+			ExpiresAt: time.Now().UTC().Add(time.Minute),
+		})
+		if err != nil {
+			app.parseDBError(w, r, err)
+			return
+		}
+		token = sessionId
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		app.parseDBError(w, r, err)
+		return
+	}
+
+	updatedSession, err := app.store.UpdateSession(r.Context(), store.UpdateSessionParams{
+		SessionID: session.SessionID,
 		ExpiresAt: time.Now().UTC().Add(time.Minute),
 	})
 	if err != nil {
 		app.parseDBError(w, r, err)
 		return
 	}
+
+	token = updatedSession
 
 	cookie := &http.Cookie{
 		Name:     SessionCookie,
@@ -121,6 +143,37 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 	http.SetCookie(w, cookie)
 
 	err = writeJSON(w, http.StatusCreated, []string{})
+	if err != nil {
+		app.internalServerError(w, r, err)
+	}
+
+}
+
+func (app *application) clearSessionHandler(w http.ResponseWriter, r *http.Request) {
+	ctxSession := r.Context().Value(SessionContexKey).(store.Session)
+
+	_, err := app.store.UpdateSession(r.Context(), store.UpdateSessionParams{
+		SessionID: ctxSession.SessionID,
+		ExpiresAt: time.Unix(0, 0),
+	})
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	expiredCookie := &http.Cookie{
+		Name:     SessionCookie,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(w, expiredCookie)
+
+	err = writeJSON(w, http.StatusOK, []string{})
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}

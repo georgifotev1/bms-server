@@ -58,15 +58,16 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
+		r.Route("/", func(r chi.Router) {
+			r.Get("/me", app.sessionMiddleware(app.getUserHandler))
+		})
 		r.Route("/hotels", func(r chi.Router) {
 			r.Get("/", app.listHotelsHandler)
 		})
 		r.Route("/auth", func(r chi.Router) {
-			r.Use(app.sessionMiddleware)
-
 			r.Post("/register", app.createUserHandler)
 			r.Post("/login", app.createSessionHandler)
-			r.Get("/me", app.getUserHandler)
+			r.Get("/logout", app.sessionMiddleware(app.clearSessionHandler))
 		})
 	})
 
