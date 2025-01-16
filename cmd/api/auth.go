@@ -107,7 +107,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		sessionId, err := app.store.CreateSession(r.Context(), store.CreateSessionParams{
 			SessionID: uuid.New(),
 			UserID:    user.UserID,
-			ExpiresAt: time.Now().UTC().Add(time.Minute),
+			ExpiresAt: time.Now().UTC().Add(time.Hour),
 		})
 		if err != nil {
 			app.parseDBError(w, r, err)
@@ -121,7 +121,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 
 	updatedSession, err := app.store.UpdateSession(r.Context(), store.UpdateSessionParams{
 		SessionID: session.SessionID,
-		ExpiresAt: time.Now().UTC().Add(time.Minute),
+		ExpiresAt: time.Now().UTC().Add(time.Hour),
 	})
 	if err != nil {
 		app.parseDBError(w, r, err)
@@ -134,7 +134,7 @@ func (app *application) createSessionHandler(w http.ResponseWriter, r *http.Requ
 		Name:     SessionCookie,
 		Value:    token.String(),
 		Path:     "/",
-		Expires:  time.Now().UTC().Add(time.Minute),
+		Expires:  time.Now().UTC().Add(time.Hour),
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,

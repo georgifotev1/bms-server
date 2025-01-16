@@ -11,8 +11,8 @@ type contextKey string
 
 const SessionContexKey = contextKey("session")
 
-func (app *application) sessionMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (app *application) sessionMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(SessionCookie)
 		if err != nil {
 			app.unauthorizedErrorResponse(w, r, err)
@@ -33,5 +33,5 @@ func (app *application) sessionMiddleware(next http.HandlerFunc) http.HandlerFun
 
 		ctx := context.WithValue(r.Context(), SessionContexKey, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
-	}
+	})
 }

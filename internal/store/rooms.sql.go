@@ -19,11 +19,11 @@ RETURNING room_id, hotel_id, room_number, type, price_per_night, is_available
 `
 
 type CreateRoomParams struct {
-	HotelID       uuid.NullUUID `json:"hotel_id"`
-	RoomNumber    int32         `json:"room_number"`
-	Type          string        `json:"type"`
-	PricePerNight string        `json:"price_per_night"`
-	IsAvailable   sql.NullBool  `json:"is_available"`
+	HotelID       uuid.UUID    `json:"hotel_id"`
+	RoomNumber    int32        `json:"room_number"`
+	Type          string       `json:"type"`
+	PricePerNight string       `json:"price_per_night"`
+	IsAvailable   sql.NullBool `json:"is_available"`
 }
 
 func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error) {
@@ -81,9 +81,9 @@ SELECT room_id, hotel_id, room_number, type, price_per_night, is_available FROM 
 `
 
 type ListRoomsParams struct {
-	HotelID uuid.NullUUID `json:"hotel_id"`
-	Limit   int32         `json:"limit"`
-	Offset  int32         `json:"offset"`
+	HotelID uuid.UUID `json:"hotel_id"`
+	Limit   int32     `json:"limit"`
+	Offset  int32     `json:"offset"`
 }
 
 func (q *Queries) ListRooms(ctx context.Context, arg ListRoomsParams) ([]Room, error) {

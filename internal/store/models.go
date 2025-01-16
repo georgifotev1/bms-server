@@ -48,12 +48,12 @@ type Notification struct {
 }
 
 type Room struct {
-	RoomID        uuid.UUID     `json:"room_id"`
-	HotelID       uuid.NullUUID `json:"hotel_id"`
-	RoomNumber    int32         `json:"room_number"`
-	Type          string        `json:"type"`
-	PricePerNight string        `json:"price_per_night"`
-	IsAvailable   sql.NullBool  `json:"is_available"`
+	RoomID        uuid.UUID    `json:"room_id"`
+	HotelID       uuid.UUID    `json:"hotel_id"`
+	RoomNumber    int32        `json:"room_number"`
+	Type          string       `json:"type"`
+	PricePerNight string       `json:"price_per_night"`
+	IsAvailable   sql.NullBool `json:"is_available"`
 }
 
 type Session struct {

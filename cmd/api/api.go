@@ -59,15 +59,21 @@ func (app *application) mount() http.Handler {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Route("/", func(r chi.Router) {
-			r.Get("/me", app.sessionMiddleware(app.getUserHandler))
+			r.Use(app.sessionMiddleware)
+
+			r.Get("/me", app.getUserHandler)
+			r.Post("/logout", app.clearSessionHandler)
 		})
 		r.Route("/hotels", func(r chi.Router) {
 			r.Get("/", app.listHotelsHandler)
+
+			r.Route("/{hotelId}", func(r chi.Router) {
+				r.Get("/rooms", app.listRoomsHandler)
+			})
 		})
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", app.createUserHandler)
 			r.Post("/login", app.createSessionHandler)
-			r.Get("/logout", app.sessionMiddleware(app.clearSessionHandler))
 		})
 	})
 
