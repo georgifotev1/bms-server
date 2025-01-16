@@ -7,7 +7,7 @@ RETURNING *;
 SELECT * FROM rooms WHERE room_id = $1;
 
 -- name: ListRooms :many
-SELECT * FROM rooms WHERE hotel_id = $1 LIMIT $2 OFFSET $3;
+SELECT * FROM rooms WHERE hotel_id = $1 ORDER BY room_number ASC LIMIT $2 OFFSET $3;
 
 -- name: UpdateRoom :one
 UPDATE rooms

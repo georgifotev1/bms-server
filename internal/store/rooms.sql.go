@@ -77,7 +77,7 @@ func (q *Queries) GetRoomById(ctx context.Context, roomID uuid.UUID) (Room, erro
 }
 
 const listRooms = `-- name: ListRooms :many
-SELECT room_id, hotel_id, room_number, type, price_per_night, is_available FROM rooms WHERE hotel_id = $1 LIMIT $2 OFFSET $3
+SELECT room_id, hotel_id, room_number, type, price_per_night, is_available FROM rooms WHERE hotel_id = $1 ORDER BY room_number ASC LIMIT $2 OFFSET $3
 `
 
 type ListRoomsParams struct {
